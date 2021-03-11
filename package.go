@@ -205,7 +205,7 @@ type Package interface {
 type RemotePackage interface {
 	Package
 	// Installs the package. This does not check dependencies. This may affect other packages.
-	Install(target *GameInstance) error
+	Install(target *GameInstance, log func (text string)) error
 }
 
 // LocalPackage represents a package installed in a GameInstance. It is invalidated when the GameInstance is modified.
