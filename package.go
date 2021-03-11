@@ -215,7 +215,8 @@ type LocalPackage interface {
 	Remove() error
 }
 
-// LocalPackagePlugin represents a plugin to the system that adds a scanner for local packages. It is assumed that the *GameInstance is supplied upon construction. The system is built this way because local packages are 
+// LocalPackagePlugin represents a plugin to the system that adds a scanner for local packages. It is assumed that the *GameInstance is supplied upon construction.
+// The system is built this way because local packages have varying types and are placed in varying locations due to various inconsistencies.
 type LocalPackagePlugin interface {
 	Packages() []LocalPackage
 }

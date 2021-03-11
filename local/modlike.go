@@ -5,7 +5,9 @@ import (
 	"os"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 	"github.com/CCDirectLink/CCUpdaterCLI"
+	"github.com/CCDirectLink/CCUpdaterCLI/ccmod"
 )
 
 type modPackage struct {
@@ -22,24 +24,12 @@ func (mp modPackage) Remove() error {
 	return os.RemoveAll(mp.base)
 }
 
-// Ported from cmd/internal/local/modfinder.go
-func getModPackage(base string) (ccmodupdater.LocalPackage, error) {
-	file, err := os.Open(filepath.Join(base, "package.json"))
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	metadata := make(ccmodupdater.PackageMetadata)
-	err = json.NewDecoder(file).Decode(&metadata)
-	if err != nil {
+// Split out from getModPackage, because ccmod handles metadata grabbing differently.
+func finishModPackage(base string, metadata ccmodupdater.PackageMetadata) (ccmodupdater.LocalPackage, error) {
+	if err := metadata.Verify(); err != nil {
 		return nil, err
 	}
 	
-	if err = metadata.Verify(); err != nil {
-		return nil, err
-	}
-
 	// Still have to mess with the metadata just a tad.
 	// Specifically, we need to find mods which are connected into CCLoader, because these mods are all special
 	if (metadata.Name() == "Simplify") || (metadata.Name() == "CCLoader display version") || (metadata.Name() == "OpenDevTools") {
@@ -54,6 +44,31 @@ func getModPackage(base string) (ccmodupdater.LocalPackage, error) {
 		base: base,
 		loadedMetadata: metadata,
 	}, nil
+}
+
+// Ported from cmd/internal/local/modfinder.go
+func getModPackage(base string) (ccmodupdater.LocalPackage, error) {
+	file, err := os.Open(filepath.Join(base, "package.json"))
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	metadata := make(ccmodupdater.PackageMetadata)
+	err = json.NewDecoder(file).Decode(&metadata)
+	if err != nil {
+		return nil, err
+	}
+	return finishModPackage(base, metadata)
+}
+
+// Added to handle the .ccmod format.
+func getPackedModPackage(base string) (ccmodupdater.LocalPackage, error) {
+	metadata, err := ccmod.GetMetadata(base)
+	if err != nil {
+		return nil, err
+	}
+	return finishModPackage(base, metadata)
 }
 
 type modPackagePlugin struct {
@@ -76,6 +91,13 @@ func (mpp modPackagePlugin) Packages() []ccmodupdater.LocalPackage {
 				mod, err := getModPackage(filepath.Join(mpp.dir, dir.Name()))
 				if err == nil {
 					packages = append(packages, mod)
+				}
+			} else {
+				if strings.HasSuffix(dir.Name(), ".ccmod") {
+					mod, err := getPackedModPackage(filepath.Join(mpp.dir, dir.Name()))
+					if err == nil {
+						packages = append(packages, mod)
+					}
 				}
 			}
 		}
