@@ -13,7 +13,7 @@ func (mrp modRemotePackage) Metadata() ccmodupdater.PackageMetadata {
 	return mrp.data.Metadata
 }
 
-func (mrp modRemotePackage) Install(game *ccmodupdater.GameInstance) error {
+func (mrp modRemotePackage) Install(game *ccmodupdater.GameInstance, log func(text string)) error {
 	typ := mrp.data.Metadata.Type()
 	
 	pkgName := mrp.data.Metadata.Name()
@@ -37,9 +37,11 @@ func (mrp modRemotePackage) Install(game *ccmodupdater.GameInstance) error {
 	// -- It begins! --
 	
 	errors := []error{};
-	for _, method := range mrp.data.Installation {
+	for key, method := range mrp.data.Installation {
+		log(fmt.Sprintf("Trying installation method %v (%s)", key, method.Type))
 		err := tryExecuteInstallationMethod(method, target)
 		if err != nil {
+			log(fmt.Sprintf("Failed: %s", err))
 			errors = append(errors, err)
 		} else {
 			return nil

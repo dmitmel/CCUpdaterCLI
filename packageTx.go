@@ -268,7 +268,7 @@ func (ctx PackageTXContext) findUnresolved(deps map[string]*semver.Constraints) 
 }
 
 // Perform actually performs a PackageTX (invalidating the PackageTXContext LocalPackages as a result) in dependency order.
-func (ctx PackageTXContext) Perform(gi *GameInstance, tx PackageTX, stats func (pkg string, pre bool, rm bool, add bool)) error {
+func (ctx PackageTXContext) Perform(gi *GameInstance, tx PackageTX, stats func (pkg string, pre bool, rm bool, add bool), log func (text string)) error {
 	// Make a copy that we can modify safely.
 	tx = tx.Clone()
 	for true {
@@ -336,7 +336,7 @@ func (ctx PackageTXContext) Perform(gi *GameInstance, tx PackageTX, stats func (
 					return fmt.Errorf("%s could not be removed for upgrade: %s", pkg.Metadata().FullReferent(), err.Error())
 				}
 			}
-			err := pkgRemote.Install(gi)
+			err := pkgRemote.Install(gi, log)
 			if err != nil {
 				stats(best, false, pkg != nil, false)
 				return fmt.Errorf("%s could not be installed: %s", pkgRemote.Metadata().FullReferent(), err.Error())

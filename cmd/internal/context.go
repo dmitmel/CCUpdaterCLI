@@ -132,6 +132,8 @@ func (ctx *Context) Execute(tx ccmodupdater.PackageTX, stats *Stats) error {
 				stats.Removed++
 			}
 		}
+	}, func (text string) {
+		fmt.Fprintln(os.Stderr, text)
 	})
 }
 
