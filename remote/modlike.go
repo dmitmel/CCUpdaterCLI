@@ -22,6 +22,7 @@ func (mrp modRemotePackage) Install(game *ccmodupdater.GameInstance) error {
 	
 	var target string
 	if typ == ccmodupdater.PackageTypeMod {
+		// Note that this is not a directory per-se, but a base name (i.e. it can be a directory, but could also end in ".ccmod" for a file
 		target = filepath.Join(game.Base(), "assets/mods", pkgName)
 	} else if typ == ccmodupdater.PackageTypeBase {
 		if pkgName == "ccloader" {
