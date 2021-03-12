@@ -47,17 +47,21 @@ func GetLocalMods(w http.ResponseWriter, r *http.Request) {
 }
 
 func getLocalMods(decoder *json.Decoder) ([]ccmodupdater.PackageMetadata, error) {
-	var game *string = nil
+	var game string = ""
 	if decoder != nil {
 		var req LocalModsRequest
 		if err := decoder.Decode(&req); err != nil {
 			return nil, fmt.Errorf("cmd/internal/api: Could not parse request body: %s", err.Error())
 		}
 
-		game = req.Game
+		if req.Game == nil {
+			game = ""
+		} else {
+			game = *req.Game
+		}
 	}
 
-	context, err := internal.NewContext(game)
+	context, err := internal.NewContext(internal.ContextOptions {Game: game})
 	if err != nil {
 		return nil, err
 	}

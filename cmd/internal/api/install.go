@@ -55,7 +55,7 @@ func install(decoder *json.Decoder) (*internal.Stats, error) {
 		return nil, fmt.Errorf("cmd/internal/api: Could not parse request body: %s", err.Error())
 	}
 
-	context, err := internal.NewOnlineContext(req.Game)
+	context, err := internal.NewOnlineContext(internal.GamePtrOptConv(req.Game))
 	if err != nil {
 		return nil, fmt.Errorf("cmd/internal/api: Could not set game flag: %s", err.Error())
 	}

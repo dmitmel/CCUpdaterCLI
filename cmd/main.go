@@ -10,16 +10,16 @@ import (
 	"github.com/CCDirectLink/CCUpdaterCLI/cmd/commands"
 )
 
-func assertContext() *internal.Context {
-	context, err := internal.NewContext(nil)
+func assertContext(options internal.ContextOptions) *internal.Context {
+	context, err := internal.NewContext(options)
 	if err != nil {
 		fmt.Printf("UNABLE TO FIND GAME in %s\n", err.Error())
 		os.Exit(1)
 	}
 	return context
 }
-func assertOnlineContext() *internal.OnlineContext {
-	onlineContext, err := assertContext().Upgrade()
+func assertOnlineContext(options internal.ContextOptions) *internal.OnlineContext {
+	onlineContext, err := assertContext(options).Upgrade()
 	if err != nil {
 		fmt.Printf("UNABLE TO GO ONLINE in %s\n", err.Error())
 		os.Exit(1)
@@ -28,16 +28,22 @@ func assertOnlineContext() *internal.OnlineContext {
 }
 
 func main() {
-	flag.String("game", "", "if set it overrides the path of the game")
+	flagGame := flag.String("game", "", "if set it overrides the path of the game")
+	flagForce := flag.Bool("force", false, "for commands that perform actions: ignores automatic dependency handling")
 
-	port := flag.Int("port", 9392, "the port which the api server listens on")
-	host := flag.String("host", "localhost", "the host which the api server listens on")
+	flagPort := flag.Int("port", 9392, "the port which the api server listens on")
+	flagHost := flag.String("host", "localhost", "the host which the api server listens on")
 
-	flag.Bool("v", false, "makes certain commands report more verbose output")
-	flag.Bool("all", false, "for list: indicates all kinds of packages should be shown")
-	flag.Bool("force", false, "for commands that perform actions: ignores automatic dependency handling")
+	flagVerbose := flag.Bool("v", false, "makes certain commands report more verbose output")
+	flagAll := flag.Bool("all", false, "for list: indicates all kinds of packages should be shown")
 
 	flag.Parse()
+
+	options := internal.ContextOptions {
+		Game: *flagGame,
+		Force: *flagForce,
+		Verbose: *flagVerbose,
+	}
 
 	if len(os.Args) == 1 {
 		printHelp()
@@ -50,19 +56,19 @@ func main() {
 	switch op {
 	case "install",
 		"i":
-		printStatsAndError(commands.Install(assertOnlineContext(), args))
+		printStatsAndError(commands.Install(assertOnlineContext(options), args))
 	case "remove",
 		"delete",
 		"uninstall":
-		printStatsAndError(commands.Uninstall(assertContext(), args))
+		printStatsAndError(commands.Uninstall(assertContext(options), args))
 	case "update":
-		printStatsAndError(commands.Update(assertOnlineContext(), args))
+		printStatsAndError(commands.Update(assertOnlineContext(options), args))
 	case "list":
-		commands.List(assertOnlineContext())
+		commands.List(assertOnlineContext(options), *flagAll)
 	case "outdated":
-		commands.Outdated(assertOnlineContext())
+		commands.Outdated(assertOnlineContext(options))
 	case "api":
-		api.StartAt(*host, *port)
+		api.StartAt(*flagHost, *flagPort)
 	case "version":
 		printVersion()
 	case "help":

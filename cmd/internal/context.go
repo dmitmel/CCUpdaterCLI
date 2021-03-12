@@ -3,50 +3,67 @@ package internal
 import (
 	"fmt"
 	"os"
-	"flag"
 	
 	"github.com/CCDirectLink/CCUpdaterCLI"
 	"github.com/CCDirectLink/CCUpdaterCLI/local"
 	"github.com/CCDirectLink/CCUpdaterCLI/remote"
 )
 
+//ContextOptions contains basic options for contexts that need to be supplied by main.go
+type ContextOptions struct {
+	// Game: Path to game (optional, blank string = cwd)
+	Game string
+	// Force: Ignore dependency checks
+	Force bool
+	// Verbose: Output more output
+	Verbose bool
+}
+
+// Convenience converter for use by API
+func GamePtrOptConv(game *string) ContextOptions {
+	gameStr := ""
+	if game != nil {
+		gameStr = *game
+	}
+	return ContextOptions {
+		Game: gameStr,
+		Force: false,
+		Verbose: false,
+	}
+}
+
 //Context contains the context details for this command.
 type Context struct {
 	game *ccmodupdater.GameInstance
+	options ContextOptions
 	upgraded *OnlineContext
 }
 
 //NewContext creates a new local context.
-func NewContext(dir *string) (*Context, error) {
-	if dir == nil {
-		game := flag.Lookup("game")
-		var dirVal string
-		var err error
-		if game != nil {
-			dirVal = game.Value.String()
-		} else {
-			dirVal, err = os.Getwd()
-			if err != nil {
-				return nil, fmt.Errorf("Unable to get working directory (as game directory): %s", err)
-			}
+func NewContext(opts ContextOptions) (*Context, error) {
+	if opts.Game == "" {
+		gameDir, err := os.Getwd()
+		if err != nil {
+			return nil, fmt.Errorf("Unable to get working directory (as game directory): %s", err)
 		}
-		dir = &dirVal
+		opts.Game = gameDir
 	}
-	game := ccmodupdater.NewGameInstance(*dir)
+	game := ccmodupdater.NewGameInstance(opts.Game)
 	plugins, err := local.AllLocalPackagePlugins(game)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to prepare for checking local packages: %s", err)
 	}
 	game.LocalPlugins = plugins
 	return &Context{
-		game,
-		nil,
+		game: game,
+		options: opts,
+		upgraded: nil,
 	}, nil
 }
 
 //NewOnlineContext creates a new online context.
-func NewOnlineContext(dir *string) (*OnlineContext, error) {
-	ctx, err := NewContext(dir)
+func NewOnlineContext(opts ContextOptions) (*OnlineContext, error) {
+	ctx, err := NewContext(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -59,6 +76,10 @@ func NewOnlineContext(dir *string) (*OnlineContext, error) {
 
 func (ctx *Context) Game() *ccmodupdater.GameInstance {
 	return ctx.game
+}
+
+func (ctx *Context) Options() ContextOptions {
+	return ctx.options
 }
 
 //Upgrade upgrades the Context to an OnlineContext.
@@ -94,12 +115,7 @@ func (ctx *Context) Execute(tx ccmodupdater.PackageTX, stats *Stats) error {
 			RemotePackages: make(map[string]ccmodupdater.RemotePackage),
 		}
 	}
-	forceFlag := flag.Lookup("force")
-	force := false
-	if forceFlag != nil {
-		force = forceFlag.Value.String() != "false"
-	}
-	if !force {
+	if !ctx.options.Force {
 		solutions, err := tc.Solve(tx)
 		if err != nil {
 			return err
