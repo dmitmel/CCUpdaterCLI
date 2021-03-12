@@ -2,17 +2,15 @@ package commands
 
 import (
 	"fmt"
-	"flag"
 
 	"github.com/CCDirectLink/CCUpdaterCLI/cmd/internal"
 	"github.com/CCDirectLink/CCUpdaterCLI"
 )
 
 //List prints a list of all available mods
-func List(context *internal.OnlineContext) {
-	verbose := flag.Lookup("v").Value.String() != "false"
-	all := flag.Lookup("all").Value.String() != "false"
-	
+func List(context *internal.OnlineContext, all bool) {
+	verbose := context.Options().Verbose
+
 	// Collect packages
 	localPackages := context.Game().Packages()
 	remotePackages := context.RemotePackages()
