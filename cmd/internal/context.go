@@ -100,20 +100,23 @@ func (ctx *Context) Upgrade() (*OnlineContext, error) {
 	return rwc, nil
 }
 
-// Execute executes a package transaction.
+// Execute executes a package transaction. If this has been upgraded to an OnlineContext, it can install packages, otherwise it can't. For .ccmod use see ExecuteWithRemotePackages.
 func (ctx *Context) Execute(tx ccmodupdater.PackageTX, stats *Stats) error {
 	upgraded := ctx.upgraded
-	var tc ccmodupdater.PackageTXContext
+	var rp map[string]ccmodupdater.RemotePackage
 	if upgraded != nil {
-		tc = ccmodupdater.PackageTXContext{
-			LocalPackages: ctx.game.Packages(),
-			RemotePackages: upgraded.remote,
-		}
+		rp = upgraded.remote
 	} else {
-		tc = ccmodupdater.PackageTXContext{
-			LocalPackages: ctx.game.Packages(),
-			RemotePackages: make(map[string]ccmodupdater.RemotePackage),
-		}
+		rp = make(map[string]ccmodupdater.RemotePackage)
+	}
+	return ctx.ExecuteWithRemotePackages(tx, stats, rp)
+}
+
+// ExecuteWithRemotePackages executes a package transaction with a specific set of remote packages.
+func (ctx *Context) ExecuteWithRemotePackages(tx ccmodupdater.PackageTX, stats *Stats, remotePackages map[string]ccmodupdater.RemotePackage) error {
+	tc := ccmodupdater.PackageTXContext{
+		LocalPackages: ctx.game.Packages(),
+		RemotePackages: remotePackages,
 	}
 	if !ctx.options.Force {
 		solutions, err := tc.Solve(tx)

@@ -37,6 +37,8 @@ func main() {
 	flagVerbose := flag.Bool("v", false, "makes certain commands report more verbose output")
 	flagAll := flag.Bool("all", false, "for list: indicates all kinds of packages should be shown")
 
+	flagOnline := flag.Bool("online", false, "for installfrom: go online to download dependencies")
+
 	flag.Parse()
 
 	options := internal.ContextOptions {
@@ -57,6 +59,8 @@ func main() {
 	case "install",
 		"i":
 		printStatsAndError(commands.Install(assertOnlineContext(options), args))
+	case "installfrom":
+		printStatsAndError(commands.InstallFrom(assertContext(options), args, *flagOnline))
 	case "remove",
 		"delete",
 		"uninstall":
