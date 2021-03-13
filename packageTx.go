@@ -208,6 +208,8 @@ func (ctx PackageTXContext) Verify(tx PackageTX) []PackageTXProblem {
 }
 
 // Solve returns a set of solved versions of the package transactions.
+// On error, it returns one "solution" (which does not function) and an error.
+// Always check the error.
 func (ctx PackageTXContext) Solve(tx PackageTX) ([]PackageTX, error) {
 	// solutions is the set of all completed PackageTXes.
 	solutions := &PackageTXSet{}
@@ -215,6 +217,9 @@ func (ctx PackageTXContext) Solve(tx PackageTX) ([]PackageTX, error) {
 	explored := &PackageTXSet{}
 	// toExplore is the set of PackageTXes to explore this round.
 	toExplore := &PackageTXSet{tx}
+	
+	// lastChecked is the last checked PackageTX, which is put in as a 'solution' on failure.
+	lastChecked := tx
 	
 	for len(*toExplore) > 0 {
 		// Round!
@@ -226,6 +231,7 @@ func (ctx PackageTXContext) Solve(tx PackageTX) ([]PackageTX, error) {
 				continue
 			}
 			problems := ctx.Verify(etx)
+			lastChecked = etx
 			if len(problems) == 0 {
 				solutions.Put(etx)
 				continue
@@ -249,7 +255,12 @@ func (ctx PackageTXContext) Solve(tx PackageTX) ([]PackageTX, error) {
 	for _, v := range originalProblems {
 		originalProblemDetail += "\n" + v.Text
 	}
-	return nil, fmt.Errorf("Unsolvable packaging situation%s", originalProblemDetail)
+	lastCheckedProblems := ctx.Verify(lastChecked)
+	lastCheckedProblemDetail := ""
+	for _, v := range lastCheckedProblems {
+		lastCheckedProblemDetail += "\n" + v.Text
+	}
+	return []PackageTX{lastChecked}, fmt.Errorf("Unsolvable packaging situation\nFirst-step issues:%s\n\nEstimated actual problem:%s", originalProblemDetail, lastCheckedProblemDetail)
 }
 
 func (ctx PackageTXContext) findUnresolved(deps map[string]*semver.Constraints) int {
